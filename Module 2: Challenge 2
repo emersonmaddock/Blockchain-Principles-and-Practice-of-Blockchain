@@ -1,0 +1,64 @@
+The hash for my voting contract is 0xe858a258ef57c7d1551f78cdd3b97002a8faa8483b4a4b0f9a361467af2f812c
+
+// SPDX-License-Identifier: MIT
+
+pragma solidity >=0.7.0 <0.9.0;
+
+contract Voting {
+    address private owner;
+    string[] private proposals;
+    int[] private numVotes;
+    mapping(string => uint) private proposalIndex;
+    mapping(address => bool) private canVote;
+    mapping(address => bool) private hasVoted;
+    
+    constructor() {
+        owner = msg.sender;
+        canVote[owner] = true;
+    }
+
+    function getOwner() public view returns (address) {
+        return owner;        
+    }
+
+    function getProposals() public view returns (string[] memory) {
+        return proposals;
+    }
+
+    function getProposalIndex(string memory proposal) private view returns (uint) {
+        require(proposalIndex[proposal] > 0, "Proposal not found");
+        return proposalIndex[proposal] - 1;
+    }
+
+    function getCanVote(address _address) public view returns (bool) {
+        return canVote[_address];
+    }
+
+    function giveVote(address _addToGiveVote) public {
+        require(msg.sender == owner, "Only the owner can give votes!");
+        canVote[_addToGiveVote] = true;
+    }
+
+    function addProposal(string memory proposal) public {
+        require(canVote[msg.sender], "You cannot submit proposals");
+        require(proposalIndex[proposal] == 0, "Proposal already exists");
+        proposals.push(proposal);
+        proposalIndex[proposal] = proposals.length;
+        numVotes.push(0);
+    }
+
+    function vote(string memory proposal) public {
+        require(canVote[msg.sender], "You cannot vote");
+        require(!hasVoted[msg.sender], "You have already voted");
+        uint proposalIdx = getProposalIndex(proposal);
+        hasVoted[msg.sender] = true;
+        numVotes[proposalIdx] += 1;
+    }
+
+    function getNumVotes(string memory proposal) public view returns (int) {
+        uint proposalIdx = getProposalIndex(proposal);
+        return numVotes[proposalIdx];
+    }
+
+
+}
